@@ -12,6 +12,7 @@ parser = argparse.ArgumentParser(description="Train LSTM Embedder and RL agents"
 parser.add_argument("--num_episodes", type=int, default=100, help="Number of episodes for training RL agents")
 parser.add_argument("--epochs", type=int, default=100, help="Number of epochs for training LSTM Embedder")
 parser.add_argument("--seq_len", type=int, default=5, help="Sequence length for training LSTM Embedder")
+parser.add_argument("--k", type=int, default=10, help="Number of top recommendations to evaluate")
 args = parser.parse_args()
 
 # Load dataset
@@ -50,8 +51,8 @@ lstm_embedder = model
 env = RecsysEnv(user_sequences, ratings_df=df, seq_len=seq_len)
 
 # Train RL agents
-dqn_agent = train(agent_type='dqn', model=lstm_embedder, num_episodes=args.num_episodes, user_sequences=user_sequences, item_count=item_count, env=env)
-reinforce_agent = train(agent_type='reinforce', model=lstm_embedder, num_episodes=args.num_episodes, user_sequences=user_sequences, item_count=item_count, env=env)
-a2c_agent = train(agent_type='a2c', model=lstm_embedder, num_episodes=args.num_episodes, user_sequences=user_sequences, item_count=item_count, env=env)
-ppo_agent = train(agent_type='ppo', model=lstm_embedder, num_episodes=args.num_episodes, user_sequences=user_sequences, item_count=item_count, env=env)
-ddqn_agent = train(agent_type='ddqn', model=lstm_embedder, num_episodes=args.num_episodes, user_sequences=user_sequences, item_count=item_count, env=env)
+#dqn_agent = train(agent_type='dqn', model=lstm_embedder, num_episodes=args.num_episodes, user_sequences=user_sequences, item_count=item_count, env=env, k=args.k)
+#reinforce_agent = train(agent_type='reinforce', model=lstm_embedder, num_episodes=args.num_episodes, user_sequences=user_sequences, item_count=item_count, env=env, k=args.k)
+#a2c_agent = train(agent_type='a2c', model=lstm_embedder, num_episodes=args.num_episodes, user_sequences=user_sequences, item_count=item_count, env=env, k=args.k)
+ppo_agent = train(agent_type='ppo', model=lstm_embedder, num_episodes=args.num_episodes, user_sequences=user_sequences, item_count=item_count, env=env, k=args.k)
+ddqn_agent = train(agent_type='ddqn', model=lstm_embedder, num_episodes=args.num_episodes, user_sequences=user_sequences, item_count=item_count, env=env, k=args.k)

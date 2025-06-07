@@ -12,7 +12,7 @@ import os
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-def train(agent_type, model, num_episodes, user_sequences, item_count, env):
+def train(agent_type, model, num_episodes, user_sequences, item_count, env, k=10):
     embedder = model.to(device)
     
     # Update state dimension to match new state representation
@@ -32,7 +32,8 @@ def train(agent_type, model, num_episodes, user_sequences, item_count, env):
         'best_reward': float('-inf'),
         'best_precision': 0.0,
         'best_hit_rate': 0.0,
-        'best_ndcg': 0.0
+        'best_ndcg': 0.0,
+        'k': k  # Store k value in metrics
     }
 
     # Agent initialization
@@ -113,7 +114,7 @@ def train(agent_type, model, num_episodes, user_sequences, item_count, env):
                 print(f" | Epsilon: {epsilon:.4f}", end="")
             
             # Evaluate and store metrics
-            eval_metrics = evaluate_agent(agent, embedder, user_sequences, k=10, agent_type=agent_type, num_users=300)
+            eval_metrics = evaluate_agent(agent, embedder, user_sequences, k=k, agent_type=agent_type, num_users=300)
             precision = float(eval_metrics[0].split(': ')[1])
             hit_rate = float(eval_metrics[1].split(': ')[1])
             ndcg = float(eval_metrics[2].split(': ')[1])
@@ -130,7 +131,7 @@ def train(agent_type, model, num_episodes, user_sequences, item_count, env):
             if ndcg > metrics['best_ndcg']:
                 metrics['best_ndcg'] = ndcg
             
-            print(f" | Precision@10: {precision:.4f} | Hit@10: {hit_rate:.4f} | NDCG@10: {ndcg:.4f}")
+            print(f" | Precision@{k}: {precision:.4f} | Hit@{k}: {hit_rate:.4f} | NDCG@{k}: {ndcg:.4f}")
     
     print(f'\nTraining complete for {agent_type} agent. ✅')
     
