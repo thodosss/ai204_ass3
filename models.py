@@ -1,15 +1,28 @@
-import torch.nn as nn
 import torch
-class LSTMEmbedder(nn.Module):
-    def __init__(self, num_items, embedding_dim=64, hidden_dim=128):
-        super().__init__()
-        self.embedding = nn.Embedding(num_items + 1, embedding_dim, padding_idx=0)
-        self.lstm = nn.LSTM(embedding_dim, hidden_dim, batch_first=True)
+import torch.nn as nn
 
-    def forward(self, x):
-        # x shape: (batch_size, sequence_length)
-        x = self.embedding(x)  # (batch_size, seq_len, embedding_dim)
-        _, (h_n, _) = self.lstm(x)  # (1, batch_size, hidden_dim)
-        return h_n.squeeze(0)       # (batch_size, hidden_dim)
+class LSTMEmbedder(nn.Module):
+    def __init__(self, item_count, embedding_dim=64, hidden_dim=128, num_layers=1, dropout=0.2, genre_dim=0):
+        super(LSTMEmbedder, self).__init__()
+        self.embedding = nn.Embedding(item_count + 2, embedding_dim, padding_idx=0)
+        self.genre_dim = genre_dim
+        self.lstm = nn.LSTM(
+            embedding_dim + genre_dim,
+            hidden_dim,
+            num_layers=num_layers,
+            batch_first=True,
+            dropout=dropout if num_layers > 1 else 0  # PyTorch only applies dropout if num_layers > 1
+        )
+        self.dropout = nn.Dropout(dropout)
+        self.hidden_dim = hidden_dim
+
+    def forward(self, x, genre_feats=None):
+        x = self.embedding(x)  # (batch, seq_len, embedding_dim)
+        if genre_feats is not None and self.genre_dim > 0:
+            x = torch.cat([x, genre_feats], dim=-1)  # (batch, seq_len, embedding_dim + genre_dim)
+        out, _ = self.lstm(x)
+        out = out[:, -1, :]  # Take the last output
+        out = self.dropout(out)
+        return out
 
 

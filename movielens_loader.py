@@ -1,6 +1,16 @@
 import pandas as pd
 from collections import defaultdict
 from datasets import load_dataset
+def split_user_sequences(user_sequences, val_ratio=0.1, test_ratio=0.1):
+    train_seqs, val_seqs, test_seqs = {}, {}, {}
+    for user, seq in user_sequences.items():
+        n = len(seq)
+        n_test = int(n * test_ratio)
+        n_val = int(n * val_ratio)
+        train_seqs[user] = seq[:n - n_val - n_test]
+        val_seqs[user] = seq[n - n_val - n_test : n - n_test]
+        test_seqs[user] = seq[n - n_test:]
+    return train_seqs, val_seqs, test_seqs
 
 def create_user_sequences(df, min_len=6):
     user_sequences = defaultdict(list)

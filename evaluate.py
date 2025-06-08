@@ -13,7 +13,7 @@ def ndcg_at_k(recommended_items, true_item, k):
         return 1.0 / np.log2(rank + 2)  # +2 because rank is 0-based and log2(1) = 0
     return 0.0
 
-def evaluate_agent(agent, embedder, user_sequences, k, num_users, agent_type):
+def evaluate_agent(agent, embedder, user_sequences, k, num_users, agent_type, user_stats=None):
     precision_scores, hit_scores, ndcg_scores = [], [], []
     device = next(embedder.parameters()).device
 
@@ -43,8 +43,11 @@ def evaluate_agent(agent, embedder, user_sequences, k, num_users, agent_type):
             seq_features = np.zeros(seq_len)
             seq_features[-seq_len:] = seq[i-seq_len:i]
             
-            # Create dummy user features (since we don't have user stats in evaluation)
-            user_features = np.array([0.5, 0.5, 0.5, 0.5])  # Default values
+            # Use actual user features if available
+            if user_stats is not None and user in user_stats:
+                user_features = user_stats[user]
+            else:
+                user_features = np.array([0.5, 0.5, 0.5, 0.5])  # Default values
             
             # Create temporal features
             temporal_features = np.array([

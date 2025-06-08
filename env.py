@@ -1,9 +1,12 @@
 import numpy as np
 import random
 from collections import defaultdict
+import numpy as np
+
+
 
 class RecsysEnv:
-    def __init__(self, user_sequences, ratings_df=None, seq_len=5):
+    def __init__(self, user_sequences, ratings_df=None, seq_len=5,item_genre_dict=None):
         """
         user_sequences: dict of user interaction sequences, e.g. {user_id: [item_id1, item_id2, ...]}
         ratings_df: DataFrame containing user ratings (optional)
@@ -20,6 +23,7 @@ class RecsysEnv:
                 self.ratings_dict[row['user_id']][row['item_id']] = row['rating']
         
         # Calculate user statistics
+        self.item_genre_dict = item_genre_dict or {}
         self.user_stats = self._calculate_user_statistics()
         
         self.reset()
@@ -41,34 +45,41 @@ class RecsysEnv:
         return stats
 
     def _get_state_features(self):
-        """Get enhanced state features"""
+        """Get enhanced state features including genre info"""
         # Basic sequence features
         seq_features = np.zeros(self.seq_len)
         if len(self.history) > 0:
             seq_features[-len(self.history):] = self.history[-self.seq_len:]
-        
+
+        # Genre features for last item in history (or zeros if none)
+        genre_dim = len(next(iter(self.item_genre_dict.values()))) if self.item_genre_dict else 0
+        if len(self.history) > 0 and self.history[-1] in self.item_genre_dict:
+            genre_features = self.item_genre_dict[self.history[-1]]
+        else:
+            genre_features = np.zeros(genre_dim)
+
         # User statistics
         user_stats = self.user_stats[self.user_id]
         user_features = np.array([
             user_stats['avg_rating'],
-            user_stats['num_interactions'] / 1000,  # Normalize
+            user_stats['num_interactions'] / 1000,
             user_stats['diversity'],
             user_stats['recency']
         ])
-        
+
         # Temporal features
         temporal_features = np.array([
-            self.position / len(self.user_seq),  # Progress through sequence
-            len(self.history) / self.seq_len,    # History fullness
+            self.position / len(self.user_seq),
+            len(self.history) / self.seq_len,
         ])
-        
+
         # Combine all features
         return np.concatenate([
             seq_features,
+            genre_features,
             user_features,
             temporal_features
         ])
-
     def reset(self):
         self.user_id = random.choice(list(self.user_sequences.keys()))
         self.user_seq = self.user_sequences[self.user_id]

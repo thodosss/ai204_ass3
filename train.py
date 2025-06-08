@@ -12,12 +12,12 @@ import os
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-def train(agent_type, model, num_episodes, user_sequences, item_count, env, k=10):
+def train(agent_type, model, num_episodes, user_sequences, item_count, env,val_sequences=None, k=10):
     embedder = model.to(device)
     
-    # Update state dimension to match new state representation
-    # seq_len + 4 user features + 2 temporal features
-    state_dim = env.seq_len + 6
+    # Get the true state dimension from the environment
+    dummy_state = env._get_state_features()
+    state_dim = dummy_state.shape[0]
     action_dim = item_count + 1
 
     # Initialize metrics dictionary
@@ -38,6 +38,7 @@ def train(agent_type, model, num_episodes, user_sequences, item_count, env, k=10
 
     # Agent initialization
     if agent_type == 'dqn':
+        print(f"Training DQN agent with state_dim={state_dim}, action_dim={action_dim}")
         agent = DQNAgent(state_dim, action_dim)
     elif agent_type == 'reinforce':
         agent = REINFORCEAgent(state_dim, action_dim)
@@ -108,13 +109,14 @@ def train(agent_type, model, num_episodes, user_sequences, item_count, env, k=10
         if total_reward > metrics['best_reward']:
             metrics['best_reward'] = total_reward
 
-        if episode % 100 == 0:
+        if episode % 10 == 0:
             print(f"Episode {episode+1} | Total Reward: {total_reward:.2f}", end="")
             if agent_type == 'ddqn':
                 print(f" | Epsilon: {epsilon:.4f}", end="")
             
             # Evaluate and store metrics
-            eval_metrics = evaluate_agent(agent, embedder, user_sequences, k=k, agent_type=agent_type, num_users=300)
+            eval_metrics = evaluate_agent(agent, embedder, val_sequences, k=k, agent_type=agent_type, num_users=100)
+            print(f"Validation Precision@{k}: {eval_metrics[0]}, Hit@{k}: {eval_metrics[1]}, NDCG@{k}: {eval_metrics[2]}")
             precision = float(eval_metrics[0].split(': ')[1])
             hit_rate = float(eval_metrics[1].split(': ')[1])
             ndcg = float(eval_metrics[2].split(': ')[1])
